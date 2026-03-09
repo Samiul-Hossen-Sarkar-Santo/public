@@ -3664,7 +3664,7 @@ img.u-pull-left {
 
 /* Add comma styling back */
 .about-expertise .skills-list li:not(:last-child)::after {
-    content: ", ";
+    content: " ";
 }
 
 .about-expertise .skills-list:last-child {
