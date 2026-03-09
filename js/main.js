@@ -387,6 +387,214 @@
         if (!folioLinks.length) return;
 
         const modals = [];
+        const touchThreshold = 60;
+        let activeModalIndex = -1;
+        let activeInstance = null;
+
+        const getProjectTitle = function(link, fallbackIndex) {
+            const titleElement = link ? link.querySelector(".folio-list__item-title") : null;
+            const titleText = titleElement ? titleElement.textContent.trim() : "";
+            return titleText || ("Project " + (fallbackIndex + 1));
+        };
+
+        const closePicker = function(instance) {
+            const modalRoot = instance ? instance.element() : null;
+            const nav = modalRoot ? modalRoot.querySelector(".project-modal-nav") : null;
+            const trigger = nav ? nav.querySelector(".project-modal-nav__count") : null;
+            const menu = nav ? nav.querySelector(".project-modal-nav__menu") : null;
+            if (!nav || !menu) return;
+
+            nav.classList.remove("project-modal-nav--open");
+            menu.setAttribute("hidden", "");
+            if (trigger) trigger.setAttribute("aria-expanded", "false");
+        };
+
+        const syncPickerState = function(instance, index) {
+            const modalRoot = instance ? instance.element() : null;
+            const menu = modalRoot ? modalRoot.querySelector(".project-modal-nav__menu") : null;
+            if (!menu) return;
+
+            menu.querySelectorAll(".project-modal-nav__menu-item").forEach(function(item) {
+                const itemIndex = Number(item.getAttribute("data-modal-index"));
+                const isCurrent = itemIndex === index;
+                item.classList.toggle("is-active", isCurrent);
+                if (isCurrent) {
+                    item.setAttribute("aria-current", "true");
+                    return;
+                }
+                item.removeAttribute("aria-current");
+            });
+        };
+
+        const getNavigableTotal = function() {
+            return modals.filter(Boolean).length;
+        };
+
+        const updateCounter = function(instance, index) {
+            const modalRoot = instance ? instance.element() : null;
+            const counterValue = modalRoot ? modalRoot.querySelector(".project-modal-nav__count-value") : null;
+            const counterTrigger = modalRoot ? modalRoot.querySelector(".project-modal-nav__count") : null;
+            if (!counterValue || !counterTrigger) return;
+
+            const total = getNavigableTotal();
+            counterValue.textContent = total ? (index + 1) + " / " + total : "";
+            counterTrigger.setAttribute("aria-label", "Project " + (index + 1) + " of " + total + ". Click here to access the projects directly.");
+        };
+
+        const normalizeIndex = function(index) {
+            const total = modals.length;
+            if (!total) return -1;
+            return (index + total) % total;
+        };
+
+        const showModal = function(index) {
+            const nextIndex = normalizeIndex(index);
+            if (nextIndex < 0 || !modals[nextIndex]) return;
+
+            const nextInstance = modals[nextIndex];
+            const previousInstance = activeInstance;
+
+            activeModalIndex = nextIndex;
+
+            if (previousInstance && previousInstance !== nextInstance && previousInstance.visible()) {
+                previousInstance.close();
+            }
+
+            activeInstance = nextInstance;
+            updateCounter(nextInstance, nextIndex);
+            syncPickerState(nextInstance, nextIndex);
+            closePicker(nextInstance);
+
+            if (!nextInstance.visible()) {
+                nextInstance.show();
+            }
+        };
+
+        const navigateBy = function(step) {
+            if (activeModalIndex < 0) return;
+            showModal(activeModalIndex + step);
+        };
+
+        const keyHandler = function(event) {
+            if (event.key === "Escape") {
+                if (activeInstance && activeInstance.visible()) {
+                    activeInstance.close();
+                }
+                return;
+            }
+
+            if (event.key === "ArrowRight") {
+                event.preventDefault();
+                navigateBy(1);
+            }
+
+            if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                navigateBy(-1);
+            }
+        };
+
+        const attachNavigationControls = function(instance) {
+            const modalRoot = instance.element();
+            if (!modalRoot || modalRoot.querySelector(".project-modal-nav")) return;
+
+            const nav = document.createElement("div");
+            nav.className = "project-modal-nav";
+
+            const trigger = document.createElement("button");
+            trigger.type = "button";
+            trigger.className = "project-modal-nav__count";
+            trigger.setAttribute("aria-haspopup", "true");
+            trigger.setAttribute("aria-expanded", "false");
+
+            const countValue = document.createElement("span");
+            countValue.className = "project-modal-nav__count-value";
+            countValue.setAttribute("aria-live", "polite");
+
+            const countNote = document.createElement("span");
+            countNote.className = "project-modal-nav__hint";
+            countNote.textContent = "Click here to access the projects directly";
+
+            trigger.appendChild(countValue);
+            trigger.appendChild(countNote);
+
+            const pickerMenu = document.createElement("div");
+            pickerMenu.className = "project-modal-nav__menu";
+            pickerMenu.setAttribute("hidden", "");
+
+            modals.forEach(function(modalInstance, modalIndex) {
+                if (!modalInstance) return;
+
+                const menuItem = document.createElement("button");
+                menuItem.type = "button";
+                menuItem.className = "project-modal-nav__menu-item";
+                menuItem.setAttribute("data-modal-index", String(modalIndex));
+                menuItem.textContent = (modalIndex + 1) + ". " + getProjectTitle(folioLinks[modalIndex], modalIndex);
+
+                menuItem.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closePicker(instance);
+                    showModal(modalIndex);
+                });
+
+                pickerMenu.appendChild(menuItem);
+            });
+
+            const prevButton = document.createElement("button");
+            prevButton.type = "button";
+            prevButton.className = "project-modal-nav__btn project-modal-nav__btn--prev";
+            prevButton.setAttribute("aria-label", "Previous project");
+            prevButton.textContent = "<";
+
+            const nextButton = document.createElement("button");
+            nextButton.type = "button";
+            nextButton.className = "project-modal-nav__btn project-modal-nav__btn--next";
+            nextButton.setAttribute("aria-label", "Next project");
+            nextButton.textContent = ">";
+
+            prevButton.addEventListener("click", function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                navigateBy(-1);
+            });
+
+            nextButton.addEventListener("click", function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                navigateBy(1);
+            });
+
+            trigger.addEventListener("click", function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const isOpen = nav.classList.contains("project-modal-nav--open");
+                if (isOpen) {
+                    closePicker(instance);
+                    return;
+                }
+
+                nav.classList.add("project-modal-nav--open");
+                pickerMenu.removeAttribute("hidden");
+                trigger.setAttribute("aria-expanded", "true");
+                syncPickerState(instance, activeModalIndex);
+            });
+
+            nav.addEventListener("click", function(event) {
+                event.stopPropagation();
+            });
+
+            pickerMenu.addEventListener("click", function(event) {
+                event.stopPropagation();
+            });
+
+            nav.appendChild(trigger);
+            nav.appendChild(pickerMenu);
+            nav.appendChild(prevButton);
+            nav.appendChild(nextButton);
+            modalRoot.appendChild(nav);
+        };
 
         folioLinks.forEach(function(link) {
             const modalSelector = link.getAttribute("href");
@@ -398,19 +606,61 @@
             }
 
             let instance = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
 
-            const escapeHandler = function(event) {
-                if (event.key === "Escape" && instance) {
-                    instance.close();
+            const touchStartHandler = function(event) {
+                const touch = event.changedTouches && event.changedTouches[0];
+                if (!touch) return;
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+            };
+
+            const touchEndHandler = function(event) {
+                const touch = event.changedTouches && event.changedTouches[0];
+                if (!touch) return;
+
+                const deltaX = touch.clientX - touchStartX;
+                const deltaY = touch.clientY - touchStartY;
+
+                if (Math.abs(deltaX) < touchThreshold) return;
+                if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+                if (deltaX > 0) {
+                    navigateBy(-1);
+                    return;
                 }
+
+                navigateBy(1);
             };
 
             instance = basicLightbox.create(modalElement, {
                 onShow: function() {
-                    document.addEventListener("keydown", escapeHandler);
+                    activeInstance = instance;
+                    attachNavigationControls(instance);
+                    updateCounter(instance, activeModalIndex);
+                    syncPickerState(instance, activeModalIndex);
+                    document.addEventListener("keydown", keyHandler);
+
+                    const modalRoot = instance.element();
+                    if (!modalRoot) return;
+                    modalRoot.addEventListener("touchstart", touchStartHandler, passiveEvent);
+                    modalRoot.addEventListener("touchend", touchEndHandler, passiveEvent);
                 },
                 onClose: function() {
-                    document.removeEventListener("keydown", escapeHandler);
+                    closePicker(instance);
+
+                    const modalRoot = instance.element();
+                    if (modalRoot) {
+                        modalRoot.removeEventListener("touchstart", touchStartHandler, passiveEvent);
+                        modalRoot.removeEventListener("touchend", touchEndHandler, passiveEvent);
+                    }
+
+                    document.removeEventListener("keydown", keyHandler);
+
+                    if (activeInstance === instance) {
+                        activeInstance = null;
+                    }
                 }
             });
 
@@ -420,7 +670,7 @@
         folioLinks.forEach(function(link, index) {
             link.addEventListener("click", function(event) {
                 event.preventDefault();
-                if (modals[index]) modals[index].show();
+                showModal(index);
             });
         });
 
