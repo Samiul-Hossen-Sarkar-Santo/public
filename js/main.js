@@ -18,7 +18,7 @@
     };
 
 
-   /* Animations
+/* Animations
     * -------------------------------------------------- */
     const tl = typeof anime !== "undefined"
         ? anime.timeline({
@@ -50,10 +50,17 @@
             opacity: [0, 1]
         }, "-=200")
         .add({
-            targets: [".s-intro .text-pretitle", ".s-intro .text-huge-title", ".intro-mobile-top .text-pretitle", ".intro-mobile-title"],
+            targets: [".intro-content .text-pretitle", ".intro-content .text-huge-title", ".intro-mobile-top .text-pretitle", ".intro-mobile-title"],
             translateX: [100, 0],
             opacity: [0, 1],
             delay: anime.stagger(400)
+        })
+        .add({
+            // Show mobile photo/about immediately after intro text (no extra stagger).
+            targets: ".intro-mobile-about",
+            translateX: [-50, 0],
+            opacity: [0, 1],
+            duration: 550
         })
         .add({
             targets: ".circles span",
@@ -64,7 +71,7 @@
             delay: anime.stagger(100, { direction: "reverse" })
         })
         .add({
-            targets: [".intro-social li", ".intro-mobile-about", ".intro-mobile-actions"],
+            targets: [".intro-social li", ".intro-mobile-actions"],
             translateX: [-50, 0],
             opacity: [0, 1],
             delay: anime.stagger(100, { direction: "reverse" })
@@ -77,7 +84,7 @@
         : null;
 
 
-   /* Preloader
+/* Preloader
     * -------------------------------------------------- */
     const ssPreloader = function() {
 
@@ -101,6 +108,13 @@
                 preloader.style.visibility = "hidden";
                 preloader.style.display = "none";
                 return;
+            }
+
+            // Keep mobile photo/about hidden until its timeline step.
+            const introMobileAbout = document.querySelector(".intro-mobile-about");
+            if (introMobileAbout) {
+                introMobileAbout.style.opacity = 0;
+                introMobileAbout.style.transform = "translateX(-50px)";
             }
 
             tl.play();

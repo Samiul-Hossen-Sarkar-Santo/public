@@ -17,6 +17,7 @@
     ================================================== -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="image" href="images/about-photo@2x.jpg" type="image/jpeg">
 
     <!-- CSS
     ================================================== -->
@@ -128,7 +129,7 @@
 
                         <div class="intro-mobile-about">
                             <div class="intro-mobile-about__photo">
-                                <img loading="lazy" decoding="async" src="images/about-photo@2x.jpg" alt="Portrait of Santo">
+                                <img loading="eager" fetchpriority="high" decoding="async" src="images/about-photo@2x.jpg" alt="Portrait of Santo">
                             </div>
                             <div class="intro-mobile-about__summary">
                                 <div class="text-pretitle with-line">About</div>
