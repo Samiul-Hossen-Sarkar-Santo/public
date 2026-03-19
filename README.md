@@ -52,7 +52,7 @@ Sections included:
   Repo: <https://github.com/Samiul-Hossen-Sarkar-Santo/leave_it_here>
 
 - **BICE-2022**  
-  A centralized academic resource platform built with Google Sites and maintained with teammates for the BICE-2022 batch.
+  Live: <https://sites.google.com/view/bice-2022/home>
 
 - **Chopsticks**  
   Repo: <https://github.com/Samiul-Hossen-Sarkar-Santo/Chopsticks>
